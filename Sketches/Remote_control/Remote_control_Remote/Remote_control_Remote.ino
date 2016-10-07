@@ -2,7 +2,7 @@
   Sketch    Remote control mode sketch for remote
   Platform  Freenove Three-wheeled Smart Car Kit for Arduino
   Author    Ethan Pan @ Freenove (http://www.freenove.com)
-  Date      2016/8/13
+  Date      2016/10/7
   Brief     This sketch is used to achieve remote control mode for Freenove Three-wheeled
             Smart Car Kit for Arduino. This sketch needs to be uploaded to the remote.
             The remote needs to install NFR24L01 wireless communication module.
@@ -34,11 +34,12 @@ int dataWrite[8];                 // define array used to save the write data
 void setup() {
   // NRF24L01
   radio.begin();                      // initialize RF24
-  radio.setRetries(0, 15);            // set retries times
-  radio.setPALevel(RF24_PA_LOW);      // set power
-  radio.openWritingPipe(addresses);   // open delivery channel
-  radio.openReadingPipe(1, addresses);// open delivery channel
-  radio.stopListening();              // stop monitoring
+  radio.setPALevel(RF24_PA_LOW);      // set power amplifier (PA) level
+  radio.setDataRate(RF24_1MBPS);      // set data rate through the air
+  radio.setRetries(0, 15);            // set the number and delay of retries
+  radio.openWritingPipe(addresses);   // open a pipe for writing
+  radio.openReadingPipe(1, addresses);// open a pipe for reading
+  radio.stopListening();              // stop listening for incoming messages
   // pin
   pinMode(joystickZPin, INPUT);       // set led1Pin to input mode
   pinMode(s1Pin, INPUT);              // set s1Pin to input mode

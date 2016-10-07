@@ -2,7 +2,7 @@
   Sketch    Exploration mode sketch for car
   Platform  Freenove Three-wheeled Smart Car Kit for Arduino
   Author    Ethan Pan @ Freenove (http://www.freenove.com)
-  Date      2016/8/13
+  Date      2016/10/7
   Brief     This sketch is used to achieve exploration mode for Freenove Three-wheeled
             Smart Car Kit for Arduino. This sketch needs to be uploaded to the car.
             The car needs to install NFR24L01 wireless communication module,
@@ -48,6 +48,8 @@ byte scanDistance[ptScanTimes];   // define an array to save scan data
 // wireless communication
 int dataRead[4];                  // define array used to save the read data
 int dataWrite[ptScanTimes + 2];   // define array used to save the write data
+const unsigned long wirelessOvertime = 200; // define communication overtime(ms)
+unsigned long lastReceivedSignal; // define a variable to save the time(ms) of last received the signal
 // multi task time allocation
 const int scanInterval = 30;      // define the interval(ms) of each scan
 
@@ -56,11 +58,12 @@ void setup() {
   Serial.begin(115200);
   // NRF24L01
   radio.begin();                      // initialize RF24
-  radio.setRetries(0, 15);            // set retries times
-  radio.setPALevel(RF24_PA_LOW);      // set power
-  radio.openWritingPipe(addresses);   // open delivery channel
-  radio.openReadingPipe(1, addresses);// open delivery channel
-  radio.startListening();             // start monitoring
+  radio.setPALevel(RF24_PA_LOW);      // set power amplifier (PA) level
+  radio.setDataRate(RF24_1MBPS);      // set data rate through the air
+  radio.setRetries(0, 15);            // set the number and delay of retries
+  radio.openWritingPipe(addresses);   // open a pipe for writing
+  radio.openReadingPipe(1, addresses);// open a pipe for reading
+  radio.startListening();             // start monitoringtart listening on the pipes opened
   // servo
   dirServo.attach(dirServoPin); // attaches the servo on dirServoPin to the servo object
   ptServo.attach(ptServoPin);   // attaches the servo on ptServoPin to the servo object
@@ -123,6 +126,17 @@ void loop()
 
     // control the turning and moving of the car
     ctrlCar(dirServoDegree, motorDir, motorSpd);
+
+    // save the time of last received the wireless signal
+    lastReceivedSignal = millis();
+  }
+  else {
+    // if lose wireless signal for a long time
+    if (millis() - lastReceivedSignal >= wirelessOvertime) {
+      // stop the car
+      analogWrite(pwmAPin, 0);
+      analogWrite(pwmBPin, 0);
+    }
   }
 }
 

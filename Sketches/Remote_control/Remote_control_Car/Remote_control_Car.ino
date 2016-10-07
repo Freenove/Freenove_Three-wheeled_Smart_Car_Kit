@@ -2,7 +2,7 @@
   Sketch    Remote control mode sketch for car
   Platform  Freenove Three-wheeled Smart Car Kit for Arduino
   Author    Ethan Pan @ Freenove (http://www.freenove.com)
-  Date      2016/8/13
+  Date      2016/10/7
   Brief     This sketch is used to achieve remote control mode for Freenove Three-wheeled
             Smart Car Kit for Arduino. This sketch needs to be uploaded to the car.
             The car needs to install NFR24L01 wireless communication module, can choose to
@@ -38,17 +38,20 @@ const byte motorSpeed = 255;      // define motor speed(0-255)
 #define BACKWARD HIGH
 // wireless communication
 int dataRead[8];                  // define array used to save the read data
+const unsigned long wirelessOvertime = 200; // define communication overtime(ms)
+unsigned long lastReceivedSignal; // define a variable to save the time(ms) of last received the signal
 
 void setup() {
   // serial port
   Serial.begin(115200);
   // NRF24L01
   radio.begin();                      // initialize RF24
-  radio.setRetries(0, 15);            // set retries times
-  radio.setPALevel(RF24_PA_LOW);      // set power
-  radio.openWritingPipe(addresses);   // open delivery channel
-  radio.openReadingPipe(1, addresses);// open delivery channel
-  radio.startListening();             // start monitoring
+  radio.setPALevel(RF24_PA_LOW);      // set power amplifier (PA) level
+  radio.setDataRate(RF24_1MBPS);      // set data rate through the air
+  radio.setRetries(0, 15);            // set the number and delay of retries
+  radio.openWritingPipe(addresses);   // open a pipe for writing
+  radio.openReadingPipe(1, addresses);// open a pipe for reading
+  radio.startListening();             // start monitoringtart listening on the pipes opened
   // servo
   dirServo.attach(dirServoPin); // attaches the servo on dirServoPin to the servo object
   // motor
@@ -61,9 +64,9 @@ void setup() {
   pinMode(ledRPin, OUTPUT);     // set ledRPin to output mode
   pinMode(ledGPin, OUTPUT);     // set ledGPin to output mode
   pinMode(ledBPin, OUTPUT);     // set ledBPin to output mode
-  digitalWrite(ledRPin, HIGH);
-  digitalWrite(ledGPin, HIGH);
-  digitalWrite(ledBPin, HIGH);
+  digitalWrite(ledRPin, HIGH);  // turn off R LED
+  digitalWrite(ledGPin, HIGH);  // turn off G LED
+  digitalWrite(ledBPin, HIGH);  // turn off B LED
 }
 
 void loop()
@@ -95,6 +98,23 @@ void loop()
     digitalWrite(ledRPin, dataRead[5]);
     digitalWrite(ledGPin, dataRead[6]);
     digitalWrite(ledBPin, dataRead[7]);
+
+    // save the time of last received the wireless signal
+    lastReceivedSignal = millis();
+  }
+  else {
+    // if lose wireless signal for a long time
+    if (millis() - lastReceivedSignal >= wirelessOvertime) {
+      // stop the car
+      analogWrite(pwmAPin, 0);
+      analogWrite(pwmBPin, 0);
+      // turn off the buzzer
+      noTone(buzzerPin);
+      // turn off the RGB LED
+      digitalWrite(ledRPin, HIGH);
+      digitalWrite(ledGPin, HIGH);
+      digitalWrite(ledBPin, HIGH);
+    }
   }
 
   // send motor current to serial port
